@@ -1,13 +1,47 @@
+---
+title: "About the course"
+author: "Anne Tyvijärvi"
+---
 
-# About the project
+***
 
-*Write a short description about the course and add a link to your GitHub repository here. This is an R Markdown (.Rmd) file so you should use R Markdown syntax.*
+*How are you feeling right now? What do you expect to learn? Where did you hear about the course?*  
 
-```{r}
-# This is a so-called "R chunk" where you can write R code.
+* I feel like
+  + I'm going to learn a lot
+  + I might need some help along the way
+  
+* A friend of mine
+  + told me about the course and
+  + encouraged me to participate
+  
+***
 
-date()
+*Also reflect on your learning experiences with the R for Health Data Science book and the Exercise Set 1: How did it work as a "crash course" on modern R tools and using RStudio? Which were your favorite topics? Which topics were most difficult? Some other comments on the book and our new approach of getting started with R Markdown etc.?*  
+
+* The book is really nice because
+  + the examples are clear and well explained
+ 
+* In addition
+  + for me, it really helps to have the code ready and to be able to try them for myself while reading
+  + nothing has been "difficult", although there were many things that I've never seen or tried before
+  
+***
+
+[My GitHub repository](https://github.com/tyvikurki/IODS-project)
+
+***
+
+![](C:/Users/03114911/Desktop/Sekalaista seurakuntaa/sienimetsä.jpg)
+
+```{r echo = FALSE}
+
+paste ("The","date","today","is")
+
+library(lubridate)
+current_datetime <- Sys.time()
+current_datetime
 
 ```
-The text continues here.
+*The text does not continue here*
 

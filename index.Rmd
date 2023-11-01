@@ -1,5 +1,6 @@
 ---
 title: "IODS course project"
+author: "Anne Tyvijärvi"
 output:
   html_document:
     theme: cosmo
