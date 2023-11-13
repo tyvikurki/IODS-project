@@ -1,12 +1,67 @@
-# Insert chapter 2 title here
+---
+title: 'Assignment 2: Data wrangling and analysis'
+author: "Anne Tyvijärvi"
+output:
+  html_document:
+    df_print: paged
+---
+***
 
-*Describe the work you have done this week and summarize your learning.*
+The learning2014 data is based on the international survey of Approaches to Learning. Observations with "zero" value for exam points have been removed from the data. "Deep", "stra" and "surf" are combination variables (averages) of individual measurements measuring the same "dimension".The data frame includes 166 rows and 7 columns, and all data (except gender that is "character") is numeric. 
 
-- Describe your work and results clearly. 
-- Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods.
-- Assume the reader has no previous knowledge of your data or the more advanced methods you are using.
+***
+
+With the function plot() you can see that the majority of participants identified as female, and most participants were 20 - 30 years. There was a strong positive correlation between attitude and exam points (p < 0.001), and a negative correlation between deep learning (questions related to measuring the understanding of what is being studied) and attitude (p < 0.05), but also deep learning and learning strategy (making an effort to learn).  
+
+
+* Based on the above results, I chose attitude, deep (relating to the "depth" of learning) and stra (learning strategies) as explanatory varibles for exam points, and tested these with the linear regression: + Model fit: The distribution of residuals not symmetrically distributed across 0, thus model fit is not        necessarily good
++ t-value for points and attitude is 6.203, which indicates a possible relationship between the two            variables. This is also indicated in the coefficient column (PR(>t)), where p < 0.001
++ t-value for deep and stra is close to zero, so likely there is no relationship between points and            deep/stra (although p < 0.1 for stra, so there might be a tendency of learning strategies having a         relationship with exam points)
++ R2 for the model is 0.2097, so 20.97% of the variance of the response variable (points) could be             explained by the predictor variables (attitude, deep and stra)  
+
+
+* Based on the above, the variables deep and stra were removed from the next regression analysis
+(See below for results).  
++ Model fit: The distribution of residuals more symmetrical than when the other two variables were             included in the model => better fit
++ t-value for attitude is 6.124 and p < 0.001, indicating a strong relationship between exam points and        attitude
++ R2 (multiple R squared) is 0.1906, so 19.06% of the variance in points was explained by attitude alone
+
+***
+
+Next, I tested if the model meets the assumptions of linear regression (i.e., linearity, independence, homoscedasticity, normality, no multicolinearity and no endogeneity). The "Residuals vs.fitted" plot can be used to detect non-linearity, unequal error variances, and outliers.In our data, 145, 56 and 35 seem to be outliers (but other than that the residuals are quite evenly distributed around 0). The "Q-Q Residuals" plot is used to check for normality of residuals. Here you can also see the outliers of our data. The "Residuals vs. Leverage" can be used to check for homoscedasticity and non-linearity. With our data, the spread of standardized variables increases as a function of leverage, indicating heteroscedasticity. Based on these results I would either remove outliers from the data or try data transformations (log10, square root..) to meet the assumptions of the linear regression model.
+
 
 ```{r}
+library(GGally)
+library(ggplot2)
+library(tidyverse)
+library(readr)
+
+#Set the working directory and read the data into R
+
+setwd("C:/Users/03114911/OneDrive - Valtion/Anne's PhD papers, results, plans etc/MBDP/Open data science/IODS-project")
+learning2014_readback <- read_csv("Data/learning2014.csv", show_col_types = FALSE)
+
+#Data structure and dimensions: these allow you to learn basic information of your data
+str(learning2014_readback) # all data is numeric, except gender is "character"("M"/"F")
+dim(learning2014_readback) # the data has 166 rows and 7 columns
+
+
+#Plot the relationships between variables in learning2014_readback to see how the variables are related and if there are any significant relationships. Alpha set to 0.1, only showing significance p > 0.1.
+plot <- ggpairs(learning2014_readback, mapping = aes(col = gender, alpha = 0.1))
+plot
+
+# Multiple regression
+model1 <- lm(points ~ attitude + deep + stra, data = learning2014_readback)
+summary(model1)
+                                            
+model2 <- lm(points ~ attitude, data = learning2014_readback)
+summary(model2)
+
+# Testing whether the model meets the assumptions of a linear regression
+par(mfrow = c(2,2))
+plot(model2, which = c(1,2,5))
+
 date()
 ```
 
