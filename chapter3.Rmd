@@ -2,6 +2,9 @@
 title: Assignment 3
 author: Anne Tyvijärvi
 ---
+# Assignment 3
+## Anne Tyvijärvi
+
 
 This data includes information on student alcohol consumption, personal identifiers (age, sex, etc.), information about the family (education of parents, family size, etc.) and variables measuring the student's success in school.
 
