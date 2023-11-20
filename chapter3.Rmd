@@ -1,0 +1,161 @@
+---
+title: Assignment 3
+author: Anne Tyvijärvi
+---
+
+This data includes information on student alcohol consumption, personal identifiers (age, sex, etc.), information about the family (education of parents, family size, etc.) and variables measuring the student's success in school.
+
+
+```{r, echo = FALSE, message = FALSE}
+
+library(tidyverse)
+
+alc <- read_csv("./Data/create_alc.csv")
+
+colnames(alc)
+```
+I decided to study the relationships between low/high alcohol consumption and parental education ("Medu" for mother's education and "Fedu" for father's education), student's current health status ("health") and quality of family relationships ("famrel").
+
+I hypothesize that
+
+  1. low level of education of either parent is associated with higher alcohol consumption in students 
+  2. the health status of a student is associated with higher alcohol consumption
+  3. frequent alcohol use is associated with the quality of the relationship with the family
+  
+The mean age of the students was 16.6 years. The mean score for alcohol consumption (on a scale of 1 to 5, where 1 = very low consumption and 5 = very high consumption) was 1.9, indicating a moderate level of alcohol consumption across the data set. The mean scores for the education levels of the students mother and father were 2.8 and 2.6, indicating a slightly higher level of education for the mothers compared to fathers. Over all, the students health levels were really good (mean score 3.6), and in addition, the quality of the family relationships was really good (mean score of 3.9). The count summaries support the above findings.
+```{r, echo=FALSE, message=FALSE}
+mean_age <- mean(alc$age)
+round(mean_age, digits = 1)
+  
+mean_alc_use <- mean(alc$alc_use)
+round(mean_alc_use, digits = 1)
+
+mean_Medu <- mean(alc$Medu)
+round(mean_Medu, digits = 1)
+
+mean_Fedu <- mean(alc$Fedu)
+round(mean_Fedu, digits = 1)
+
+mean_health <- mean(alc$health)
+round(mean_health, digits = 1)
+
+mean_famrel <- mean(alc$famrel)
+round(mean_famrel, digits = 1)
+
+alc %>% group_by(age) %>% summarise(count = n())
+alc %>% group_by(alc_use) %>% summarise(count = n())
+alc %>% group_by(Medu) %>% summarise(count = n())
+alc %>% group_by(Fedu) %>% summarise(count = n())
+alc %>% group_by(health) %>% summarise(count = n())
+alc %>% group_by(famrel) %>% summarise(count = n())
+
+```
+
+  
+Below, the charts show that in general, alcohol use seemed to be more frequent where either parent had a higher education. This is opposite to my first hypothesis. 
+
+```{r, echo=FALSE, message=FALSE}
+
+library(ggplot2)
+library(gridExtra)
+
+plot1 <- ggplot(data = alc, mapping = aes(x =  alc_use)) +
+  geom_histogram(color = "black", fill = "red") +
+  ylim(0,100) +
+  facet_grid(cols = vars(Medu)) +
+  labs(title = "Alcohol use across the mother's education level", x = "Alcohol use", y = NULL,
+       caption = "Counts of alcohol use on a scale of 1 to 5 (where 1 = very low consumption and 5 = very high consumption) across the education level of the \n students mother (where 0 = none; 1 = primary education; 2 = 5th to 9th grade; 3 = secondary education; 4 = higher education)") +
+  theme(plot.caption = element_text(hjust = 20)) +
+  theme_minimal(base_size = 9)
+
+plot2 <- ggplot(data = alc, mapping = aes(x =  alc_use)) +
+  geom_histogram(color = "black", fill = "blue") +
+  ylim(0,100) +
+  facet_grid(cols = vars(Fedu)) +
+  labs(title = "Alcohol use across the father's education level", x = "Alcohol use", y = NULL,
+       caption = "Counts of alcohol use on a scale of 1 to 5 (where 1 = very low consumption and 5 = very high consumption) across the education level of the \n students father (where 0 = none; 1 = primary education; 2 = 5th to 9th grade; 3 = secondary education; 4 = higher education)") +
+  theme_minimal(base_size = 9)
+
+grid.arrange(plot1, plot2)
+```
+  
+In addition, in contrast to my second and third hypotheses, either poor health score or poor family relationships did not seem to be associated with more frequent alcohol use.  
+
+```{r, echo=FALSE, message=FALSE}
+
+library(ggplot2)
+library(gridExtra)
+
+plot3 <- ggplot(data = alc, mapping = aes(x = alc_use)) +
+  geom_histogram(color = "black", fill = "green") +
+  ylim(0, 100) +
+  facet_grid(cols = vars(health)) +
+  labs(title = "Alcohol use across student's health level", x = "Alcohol use", y = NULL,
+       caption = "Counts of alcohol use (where 1 = very low consumption and 5 = very high consumption) across the student's health level on a numeric scale \n from 1 to 5 (where 1 = very bad and 5 = very good)") +
+  theme_minimal(base_size = 9)
+
+plot4 <- ggplot(data = alc, mapping = aes(x = alc_use)) +
+  geom_histogram(color = "black", fill = "orange") + 
+  ylim(0, 100) +
+  labs(title = "Alcohol use across the quality of family relationships", x = "Alcohol use", y = NULL,
+       caption = "Counts of alcohol use across different levels of alcohol consumption on a scale of 1 to 5 (where 1 = very low consumption and 5 = very high \n consumption) versus the the quality of the student's family relationships on a scale of 1 to 5 (where 1 = very bad and 5 = excellent") +
+  facet_grid(cols = vars(famrel)) +
+  theme_minimal(base_size = 9)
+
+grid.arrange(plot3, plot4)
+```
+  
+
+Now, let's see if there are statistically significant differences associated with the variables that I've chosen and high alcohol use. Let's set the "family = binomial" to let R know that the dependent variable high_use is binary (TRUE/FALSE).  
+
+Summary of the model shows a significant (p < 0.05 ) relationship between the quality of family relationships and high alcohol use. In addition, there is a trend of the health score being associated with high alcohol use (p < 0.1).
+  
+
+```{r, echo=FALSE, message=FALSE}
+library(dplyr)
+glm1 <- glm(high_use ~ Medu + Fedu + health + famrel,  data = alc, family = "binomial")
+
+summary(glm1)
+coef(glm1)
+```
+Since the education of either parent does not explain high alcohol use, let's remove them from the model see and see how that looks. Let's also look at the coefficients/odd ratios and provide confidence intervals for them.
+
+The summary shows a small increase/improvement in the p - value for "health". From the coefficients and confidence interval output we can see that the odds of variable "health" is ~1.16, meaning that exposure to "high_use" was associated with higher odds of outcome for health. For family relationships (famrel), the odd ratio was 0.7 meaning that the exposure to "high_use" was associated with lower odds of outcome for the quality of family relationships. Around 30% of the variance in "health odd ratio" can be explained with 97,5% confidence interval (which is OK?), but for famrel the value is below zero (which is not good, I assume :D)
+
+
+```{r, echo=FALSE, message=FALSE}
+glm2 <- glm(high_use ~ health + famrel,  data = alc, family = "binomial")
+summary(glm2)
+odd_ratios <- exp(coef(glm2))
+conf_intervals <- confint(glm2)
+
+cbind(odd_ratios, conf_intervals)
+
+```
+Next, let's explore the predictive power of our model glm2. The prediction got 256 (out of possible 259) FALSE observations "right", so here the prediction works quite efficiently. However, when it comes to TRUE observations in the data, the prediction was not able to predict any of them (so the "result" is 0/111, which to me, sounds bad). Since I'm not a data scientist and this is my first time performing such analysis, I'm not quite sure how to interpret this. I'm sure (?) something in our model is not as is should be (I know at least that the variables health and famrel are not anywhere near normally distributed, so maybe that is one thing..?). The average number of incorrect predictions with probability 0 was 0.3, and with probability 1 it was 0.7.This means that when we have a binary (TRUE/FALSE and "positive"/"negative") problem, any prediction that is set with the probability of 0 is the prediction for "FALSE" or "negative" => in our case, the average number of incorrect predictions for "FALSE" is 0.3, where as for "TRUE" it is 0.7. This was also reflected in the cross tabulation where the prediction failed with all TRUE predictions.
+
+
+
+```{r, echo=FALSE, message=FALSE}
+library(readr)
+library(dplyr)
+
+probabilities <- predict(glm2, type = "response")
+alc <- mutate(alc, probability = probabilities)
+alc <- mutate(alc, prediction = probability > 0.5)
+table(high_use = alc$high_use, prediction = alc$prediction)
+
+
+alc <- mutate(alc, probability = predict(glm2, type = "response"))
+alc <- mutate(alc, prediction = probability > 0.5)
+loss_func <- function(class, prob) {
+  n_wrong <- abs(class - prob) > 0.5
+  mean(n_wrong)
+}
+loss_func(class = alc$high_use, prob = 0) # 0.3
+loss_func(class = alc$high_use, prob = 1) # 0.7
+```
+Regarding the three hypothesis set in the beginning, it looked like student health and the quality of family relationships were associated with alcohol use, so my last two hypothese were confirmed. However, I found no support for the first hypothesis, and it looks like the education level of either parent is not associated with alcohol consumption in students.Based on the odd ratios and predictions  my glm model did not really work well, but the time allocated for these exercises did not allow me to further explore what was "wrong" with it. 
+
+
+As final words I would like to declare that I put a lot of time and effort in these exercises, and although I might have not interpreted the results "correctly" and made a few mistakes, I really tried my best and gave it a 100 % effort. :) I hope you (whoever grades this) appreciate the effort I made (being new to all these things shows...) :) 

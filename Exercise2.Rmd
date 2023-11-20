@@ -343,8 +343,17 @@ male_students <- filter(learning2014, gender == "M")
 
 # select rows where points is greater than zero
 learning2014 <- filter(learning2014, points > 0)
+learning2014
 
+library(readr)
 
+?write_csv
+
+write_csv(x = learning2014, "Data/learning2014.csv")
+learning2014_readback <- read_csv("Data/learning2014.csv")
+
+str(learning2014_readback)
+head(learning2014_readback)
 
 ```
 

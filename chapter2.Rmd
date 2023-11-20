@@ -10,6 +10,7 @@ output:
 # Assignment 2: Data wrangling and analysis
 ## Anne Tyvijärvi
 
+
 The learning2014 data is based on the international survey of Approaches to Learning. Observations with "zero" value for exam points have been removed from the data. "Deep", "stra" and "surf" are combination variables (averages) of individual measurements measuring the same "dimension".The data frame includes 166 rows and 7 columns, and all data (except gender that is "character") is numeric. 
 
 ***
