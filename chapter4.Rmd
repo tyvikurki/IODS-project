@@ -1,0 +1,176 @@
+
+# Assignment 4
+## Anne Tyvijärvi
+
+***
+
+The Boston data frame contains information related to the housing values in the suburbs of Boston. The data consists of 506 rows and 14 columns.
+
+```{r, echo=FALSE, message=FALSE}
+#install.packages("MASS")
+library(MASS)
+library(tidyverse)
+library(dplyr)
+
+boston <- Boston
+
+glimpse(boston)
+colnames(boston)
+boston <- as_tibble(boston)
+```
+From the data summary we can see that, for example,  the average crime rate per capita ("crim") is 3.6, and that the median value of owner-occupied homes ("medv") is around 22.5k$. As the summary and the boxplots also show, the majority of owner-occupied units were built before the 1940s ("age").  
+
+```{r, message=FALSE, echo=FALSE}
+library(corrplot)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+summary(boston)
+
+gather(boston) %>% 
+    ggplot(aes(value)) + facet_wrap("key", scales = "free") +
+geom_boxplot(color = "pink", fill = "blue")
+
+# Creating the correlation matrix
+corr_matrix <- cor(boston)
+
+# Calculate p-values that you can extract later
+p_values <- cor.mtest(boston)
+
+corrplot(corr_matrix, method = "circle", type = "lower", sig.level = 0.001, p.mat = p_values$p, insig = "blank", diag = FALSE, col = COL2("PiYG"))
+```
+
+The correlation plot (alpha = 0.001) shows significant negative correlations between the distance to employment centres ("dis") and the proportion of non-retail business ("indus"), nitrogen oxide concentrations ("nox"), and the proportion of units built before the 1940s ("age"). There is a strong positive correlation (p < 0.001) between the property tax-rate ("tax", full-value property-tax rate per $10,000) and accessability to radial highways ("rad").  
+
+Let's scale the data and print the summary of the scaled data. => All means are set to 0.00.  
+
+Next, let's create a categorial variable from the scaled crime rate in Boston dataset => let's use quantiles as break points and drop the old crime rate from the data set.  
+```{r, echo=FALSE, message=FALSE}
+boston_scaled <- scale(boston)
+summary(boston_scaled)
+
+#Let's check that Boston is data frame and crim is numeric:
+is.data.frame(boston_scaled)
+boston_scaled <- as.data.frame(boston_scaled)
+class(boston_scaled$crim)
+
+bins <- quantile(boston_scaled$crim)
+labels <- c("low","med_low", "med_high", "high")
+crime <- cut(boston_scaled$crim, breaks = bins, include.lowest = TRUE, label = labels)
+boston_scaled <- dplyr::select(boston_scaled, -crim)
+boston_scaled <- data.frame(boston_scaled, crime)
+colnames(boston_scaled)
+
+```
+Then, let's divide the data to "train" and "test" sets, and include 80 % of the data to "train" (and the rest to "test"). Finally, let's fit an LDA biplot (where crime rate is the target variable and all other variables are predictor variables.) Let's save the correct classes from "crime" data and predict new classes with the LDA.  
+
+From the prediction we can see that the prediction was correct for 15/23 in low, 15/29 in med_low, 16/19 in med_high and 31/31 in high. It looks like the model works better when predicting higher values (med_high or high, accuracy ~85-100%), where as for lower values the predictions were less accurate (med_low and low, accurary ~51-65%).  
+
+
+```{r, message=FALSE, echo=FALSE}
+
+#Creating train and test data sets
+n <- nrow(boston_scaled)
+ind <- sample(n,  size = n * 0.8)
+train <- boston_scaled[ind,]
+test <- boston_scaled[-ind,]
+
+#Performing LDA
+
+lda.fit <- lda(crime ~ ., data = train)
+lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0.75, choices = c(1,2)){
+  heads <- coef(x)
+  graphics::arrows(x0 = 0, y0 = 0, 
+         x1 = myscale * heads[,choices[1]], 
+         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
+  text(myscale * heads[,choices], labels = row.names(heads), 
+       cex = tex, col=color, pos=3)
+}
+
+classes <- as.numeric(train$crime)
+
+#Create LDA biplot
+
+plot(lda.fit, dimen = 2, col = classes, pch = classes) +
+lda.arrows(lda.fit, myscale = 4)
+
+#Save correct classes and remove crime variable from "test"
+correct_classes <- test$crime
+test <- dplyr::select(test, -crime)
+
+#Predict classes and cross-tabulate
+lda.pred <- predict(lda.fit, newdata = test)
+table(correct = correct_classes, predicted = lda.pred$class)
+
+```
+Now, let's reload the Boston dataset and standardize it. Let's calculate the distances between the observations. Then run the K-means algorithm and determine the optimal number of clusters before re-running the algorithm based on the optimal clustering number.  
+
+```{r, message=FALSE, echo=FALSE}
+
+boston_new <- Boston
+boston_new_scaled <- scale(boston_new)
+boston2 <- as.data.frame(boston_new_scaled)
+dist_eu <- dist(boston2)
+dist_man <- dist(boston2, method = "manhattan")
+summary(dist_eu)
+summary(dist_man)
+
+km <- kmeans(boston2, centers = 3)
+groups <- km$cluster
+l <- length(unique(km$cluster))
+pairs(boston, col = hcl.colors(l, "Temps")[groups])
+
+set.seed(123)
+k_max <- 10
+twcss <- sapply(1:k_max, function(k){kmeans(boston, k)$tot.withinss})
+qplot(x = 1:k_max, y = twcss, geom = 'line')
+
+km <- kmeans(boston, centers = 2)
+
+groups <- km$cluster
+l <- length(unique(km$cluster))
+pairs(boston[1:5], col = hcl.colors(l, "Temps")[groups])
+pairs(boston[6:10], col = hcl.colors(l, "Temps")[groups])
+pairs(boston[11:14], col = hcl.colors(l, "Temps")[groups])
+
+
+```
+
+```{r, echo=FALSE, message=FALSE}
+
+```
+
+
+Let's try the super-bonus..
+
+... OK, something weird is happening here with the second plot but I can't figure out what it is. Let's just forget about the super-bonus. :'(
+
+```{r, echo=FALSE, message=FALSE}
+library(dplyr)
+
+model_predictors <- dplyr::select(train, -crime)
+
+# check the dimensions
+dim(model_predictors)
+dim(lda.fit$scaling)
+
+# matrix multiplication
+matrix_product <- as.matrix(model_predictors) %*% lda.fit$scaling
+matrix_product <- as.data.frame(matrix_product)
+#install.packages("plotly")
+library(plotly)
+
+plot1 <- plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color = train$crime)
+plot1
+
+#plot2 <- plot_ly(x = matrix_product$LD1, y = matrix_product$LD2, z = matrix_product$LD3, type= 'scatter3d', mode='markers', color = groups)
+#plot2
+
+#groups
+#train$crime
+
+
+```
+
+
