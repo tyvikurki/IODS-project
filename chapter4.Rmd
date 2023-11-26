@@ -104,7 +104,9 @@ lda.pred <- predict(lda.fit, newdata = test)
 table(correct = correct_classes, predicted = lda.pred$class)
 
 ```
-Now, let's reload the Boston dataset and standardize it. Let's calculate the distances between the observations. Then run the K-means algorithm and determine the optimal number of clusters before re-running the algorithm based on the optimal clustering number.  
+Now, let's reload the Boston dataset and standardize it. Let's calculate the distances between the observations and print a summary of them. Then run the K-means algorithm and determine the optimal number of clusters before re-running the algorithm based on the optimal clustering number. (First run with 3 clusters and then 2 according to the optimization.)  Let's plot the clusters using pairs().
+
+
 
 ```{r, message=FALSE, echo=FALSE}
 
@@ -112,9 +114,8 @@ boston_new <- Boston
 boston_new_scaled <- scale(boston_new)
 boston2 <- as.data.frame(boston_new_scaled)
 dist_eu <- dist(boston2)
-dist_man <- dist(boston2, method = "manhattan")
 summary(dist_eu)
-summary(dist_man)
+
 
 km <- kmeans(boston2, centers = 3)
 groups <- km$cluster
