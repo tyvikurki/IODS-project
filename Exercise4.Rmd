@@ -554,7 +554,7 @@ k_max <- 10
 twcss <- sapply(1:k_max, function(k){kmeans(Boston, k)$tot.withinss})
 
 # visualize the results
-qplot(x = 1:k_max, y = twcss, geom = 'line')
+  qplot(x = 1:k_max, y = twcss, geom = 'line')
 
 # k-means clustering
 km <- kmeans(boston, centers = 2)

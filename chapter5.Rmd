@@ -1,0 +1,136 @@
+# Anne Tyvijärvi
+## Assignment 5
+***
+
+The data contains information of 
+
+GNI = Gross National Income per capita  
+Life.Exp = Life expectancy at birth  
+Edu.Exp = Expected years of schooling  
+Mat.Mor = Maternal mortality ratio  
+Ado.Birth = Adolescent birth rate  
+Parli.F = Percetange of female representatives in parliament  
+Edu2.FM = Edu2.F / Edu2.M (Edu2.F" = Proportion of females with at least secondary education, "Edu2.M" = Proportion of males with at least secondary education)  
+Labo.FM = Labo2.F / Labo2.M("Labo.F" = Proportion of females in the labour force/"Labo.M" " Proportion of males in the labour force)  
+Country = country :)  
+
+From the summary we can see e.g., that the mean life expectancy at birth across the whole data set is ~72 years, and expected years of schooling is ~13 years. Also, the scale of the variables varies from 10^-2 to 10^5, which might get us in trouble later :D.
+
+Looking at the graphical summary of the data, only Edu.Exp looks like it is normally distributed. There are multiple significant correlations between the variables. To name a few, the maternal mortality ratio has a strong negative correlation with the life expectancy at birth and a strong positive correlation with adolescent birth rate.  
+
+```{r, echo=FALSE, message=FALSE}
+library(readr)
+library(tibble)
+library(GGally)
+library(dplyr)
+
+human2 <- read_csv("./Data/human2.csv")
+human <- human2 
+human_ <- column_to_rownames(human, "Country")
+glimpse(human)
+human_ <- select(human_, 7, 5, 3, 4, 6, 8, 1, 2) #Rearranging columns
+summary(human_)
+ggpairs(human_)
+
+```
+
+Let's first run PCA with unstandardized variables.Here PC1 explained a 100% of the total variance in the variables, and is aligned with GNI (which is the result of not scaling the variables before running the PCA).  
+
+```{r, echo=FALSE, message=FALSE}
+pca_human_ <- prcomp(human_)
+summary(pca_human_)
+s <- summary(pca_human_)
+
+pca_pros <- (round(1*s$importance[2, ], digits = 3))*100
+pc_lab <- paste0(names(pca_pros), " (", pca_pros, "%)")
+biplot(pca_human_, cex = c(0.8, 1), col = c("darkgreen", "deeppink2"), xlab = pc_lab[1], ylab = pc_lab[2])
+```
+
+Now, let's try again with standardized variables.    
+
+We can see that together, PCA1 and PCA2 accounted for 69.8% of the total variance in the variables. It looks like the maternal mortality ratio was aligned together with adolescent birth ratio (which was also visible in the correlations), and that they were both positively correlated with PC1. Expected years of schooling, life expectancy at birth, proportion of females with at least secondary education and GNI were all aligned together and were negatively correlated with PCA1. Proportion of females in the labour force and percetange of female representatives in parliament were aligned together and were positively correlated with PCA2. The names of countries are really hard to see, but in general it looks like many west-African countries (Burkina Faso, Gambia, Benin, Sierra Leone) were aligned with maternal mortality ratio and adolescent birth rate, where as east- and south-African countries (e.g., Namibia, South Africa, Rwanda, Tanzania) were aligned together with proportion of females in the labour force and percetange of female representatives in parliament. Many European countries can be seen with no apparent connection to any of the measured variables.  
+
+```{r, echo=FALSE, message=FALSE}
+
+human_scale <- scale(human_)
+pca_human_scale <- prcomp(human_scale)
+summary(pca_human_scale)
+s_scale <- summary(pca_human_scale)
+
+pca_pros_scale <- (round(1*s_scale$importance[2, ], digits = 3))*100
+pc_lab_scale <- paste0(names(pca_pros_scale), " (", pca_pros_scale, "%)")
+biplot(pca_human_scale, cex = c(0.5, 1), col = c("darkgreen", "deeppink2"), xlab = pc_lab_scale[1], ylab = pc_lab_scale[2])
+```
+
+OK, lets' then upload the tea data set (convert character variables to factors), and look at the structure and dimensions of the tea. There are 36 variables and 300 observations.  
+
+```{r, echo=FALSE, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+
+tea <- read.csv("https://raw.githubusercontent.com/KimmoVehkalahti/Helsinki-Open-Data-Science/master/datasets/tea.csv", stringsAsFactors = TRUE)
+glimpse(tea)
+str(tea)
+dim(tea)
+view(tea)
+
+keep_columns1 <- c("breakfast", "tea.time", "evening", "lunch", "dinner", "always")
+keep_columns2 <- c("home", "work", "tearoom", "friends", "resto", "pub" )
+keep_columns3 <- c("Tea", "How", "sugar", "how", "where", "price")
+keep_columns4 <- c("escape.exoticism", "spirituality", "healthy", "diuretic", "friendliness", "iron.absorption")
+keep_columns5 <- c("feminine", "sophisticated", "slimming", "exciting", "relaxing","effect.on.health")
+
+
+tea_time1 <- tea %>% select(all_of(keep_columns1))
+tea_time2 <- tea %>% select(all_of(keep_columns2))
+tea_time3 <- tea %>% select(all_of(keep_columns3))
+tea_time4 <- tea %>% select(all_of(keep_columns4))
+tea_time5 <- tea %>% select(all_of(keep_columns5))
+
+pivot_longer(tea_time1, cols = everything()) %>% 
+  ggplot(aes(value)) + facet_wrap("name", scales = "free") +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+pivot_longer(tea_time2, cols = everything()) %>% 
+  ggplot(aes(value)) + facet_wrap("name", scales = "free") +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+pivot_longer(tea_time3, cols = everything()) %>% 
+  ggplot(aes(value)) + facet_wrap("name", scales = "free") +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+pivot_longer(tea_time4, cols = everything()) %>% 
+  ggplot(aes(value)) + facet_wrap("name", scales = "free") +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+pivot_longer(tea_time5, cols = everything()) %>% 
+  ggplot(aes(value)) + facet_wrap("name", scales = "free") +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8))
+
+
+```
+
+Whatever, let's run an MCA on the tea data set. :D  
+
+Because there are so many variables, I'll look at the first 10 of them to make the MCA look more clear. Let's only plot the variables (and not individuals).
+
+I'm not sure if this type of data is really the best for MCA, since MCA is also a dimension reduction method, and this data is quite "simple" (there's only two levels of each variable). Based on this plot at least, I can't see any patterns or correlations.. I would probabaly use MCA for something more complicated where it would reveal underlying patterns in the data.  
+
+```{r, echo=FALSE, message=FALSE}
+library(FactoMineR)
+str(tea)
+tea$age <- as.factor(tea$age)
+
+mca1 <- MCA(tea[1:10], graph = FALSE, ncp = 2)
+plot(mca1, invisible = c("ind"), graph.type = "classic", habillage = "quali")
+summary(mca1)
+
+```
+
