@@ -455,7 +455,7 @@ mca <- MCA(tea_time3_what, graph = FALSE)
 summary(mca)
 
 # visualize MCA
-plot(mca, invisible=c("ind"), graph.type = "classic", habillage = "quali")
+plot(mca,graph.type = "classic", habillage = "quali")
 
 ```
 

@@ -1,0 +1,246 @@
+# Assignment 6
+## Anne Tyvijärvi
+
+### Part I  
+
+*Implement the analyses of Chapter 8 of MABS using the RATS data*
+
+*"The rats data contains information collected from a nutrition study conducted in three groups of rats. The groups were put on different diets, and each animal’s body weight (grams) was recorded repeatedly (approximately) weekly, except in week seven when two recordings were taken) over a 9-week period."*
+
+
+I'll start by reading in both data sets needed in this final data analysis.  
+
+The rats data contains information of rat weights over a period of time. Let's transform Group and ID as factors.  
+
+```{r, message=FALSE}
+library(tidyverse)
+library(lme4)
+library(ggplot2)
+
+rats_new <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/rats.txt", header = TRUE)
+BPRS_new <- read.table("https://raw.githubusercontent.com/KimmoVehkalahti/MABS/master/Examples/data/BPRS.txt", header = TRUE)
+
+summary(rats_new)
+str(rats_new)
+
+rats_new$Group <- factor(rats_new$Group)
+rats_new$ID <- factor(rats_new$ID)
+colnames(rats_new)
+
+
+```
+
+Let's transform the data into long form and  also, extract the times value and create a new column containing the integer value of it.   
+
+Finally, let's create a boxplot of the data. From this we can see that the three groups seem to be different.  
+
+```{r, message=FALSE}
+
+# Transform the data to long form
+ratsL <-  pivot_longer(rats_new, cols = -c(Group, ID),
+                       names_to = "WD", values_to = "weight") %>%
+          arrange(WD)
+
+#Create a new column of the extracted times value
+ratsL <-  ratsL %>% 
+            mutate(time = as.integer(substr(WD,3,4)))
+
+
+#plot and group data by Groups
+ggplot(ratsL, aes(x = time, y = weight, group = Group)) +
+ geom_boxplot() +
+ scale_x_continuous(name = "Time (days)", breaks = seq(0, 60, 10)) +
+  scale_y_continuous(name = "Weight (grams)") +
+  theme(legend.position = "top")
+```
+
+
+
+Let's try standardizing the data (mean):  
+
+I'll comment these out as it does not make any sense with this kind of data..  
+
+```{r, message=FALSE}
+
+#standardize
+#ratsL <- ratsL %>%
+ # group_by(time) %>%
+  #mutate(stdweight = (weight - mean(weight))/sd(weight)) %>%
+  #ungroup()
+
+# Plot again
+#ggplot(ratsL, aes(x = time, y = stdweight, group = Group)) +
+ # geom_boxplot()
+
+```
+
+
+Next, let's plot and visualize the data with standard error of the mean (SEM) (according to Groups). The SEM looks fine for all the groups. Group 1 has the smallest SEM, and maybe group 2 the biggest. Anyways, nothing alarming here.   
+
+```{r, message=FALSE}
+
+
+#let's create columns for mean and sem
+n <- 16
+ratsLS <- ratsL %>%
+  group_by(Group, time) %>%
+  summarise(mean = mean(weight), se = sd(weight)/sqrt(n)) %>%
+  ungroup()
+
+# ..and plot the mean profiles
+ggplot(ratsLS, aes(x = time, y = mean, linetype = Group, shape = Group)) +
+  geom_line() +
+  scale_linetype_manual(values = c(1,2,3)) +
+  geom_point(size=5) +
+  scale_shape_manual(values = c(1,2,3)) +
+  geom_errorbar(aes(ymin=mean-se, ymax=mean+se, linetype="1"), width=0.3) +
+  theme(legend.position = "top") +
+  scale_y_continuous(name = "mean +/- sem")
+
+```
+
+Next let's create a boxplot of the data, showing the mean and possible outliers in the data.  
+
+The boxplot shows two possible outliers: one for Group 2 and one for Group 3 (first boxplot).  
+
+Using the method from the exercises, I tried removing the outliers from the data (second boxplot) but that only created "new" outliers, so I'm not sure what would be the best way to go around this. I would probably run a normality test (i.e., Shapiro-Wilks, not going to go there now), see what that looks like and then try different data transformations..   
+
+```{r, message=FALSE}
+
+ratsL8S <- ratsL %>%
+  filter(time > 0) %>%
+  group_by(Group, ID) %>%
+  summarise( mean=mean(weight) ) %>%
+  ungroup()
+
+# Draw a boxplot of the mean versus treatment by Group
+ggplot(ratsL8S, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun = "mean", geom = "point", shape=21, size=5, fill = "white") +
+  scale_y_continuous(name = "mean(weight)")
+
+#Let's try to filter some outliers (not sure what would be the best way to get rid of the third one)
+ratsL8S1 <- ratsL8S %>%
+  filter(mean < 550)
+#ratsL8S2 <- ratsL8S1 %>%
+  #filter(mean > 250)
+#.. and plot again
+ggplot(ratsL8S1, aes(x = Group, y = mean)) +
+  geom_boxplot() +
+  stat_summary(fun = "mean", geom = "point", shape=21, size=5, fill = "white") +
+  scale_y_continuous(name = "mean(weight)")
+
+
+```
+
+I will not run a t-test here because it is for detecting differences between two groups (and we have three). Let's just run a basic linear model with Anova. We can see that the means are significantly different between Groups (p < 0.001).  
+
+```{r, message=FALSE}
+
+lm1 <- lm(mean ~ Group, data = ratsL8S1)
+summary(lm1)
+anova(lm1)
+
+```
+
+
+### Part 2
+
+*Implement the analyses of Chapter 9 of MABS using the BPRS data.*  
+
+*"The BPRS data contains information of 40 male subjects who were randomly assigned to one of two treatment groups and each subject was rated on the brief psychiatric rating scale (BPRS) measured before treatment began (week 0) and then at weekly intervals for eight weeks. The BPRS assesses the level of 18 symptom constructs such as hostility, suspiciousness, hallucinations and grandiosity; each of these is rated from one (not present) to seven (extremely severe). The scale is used to evaluate patients suspected of having schizophrenia."*
+
+BPRS data is available. Let's start again by transforming treatment and subject as factors and converting the data to long form.
+
+
+```{r, message=FALSE}
+
+# BPRS data is available
+
+#let's transform these as factors
+BPRS_new$treatment <- factor(BPRS_new$treatment)
+BPRS_new$subject <- factor(BPRS_new$subject)
+
+# and glimpse the data
+glimpse(BPRS_new)
+
+# Convert data to long form
+BPRSL <-  pivot_longer(BPRS_new, cols = -c(treatment, subject),
+                       names_to = "weeks", values_to = "bprs") %>%
+          arrange(weeks) 
+BPRSL <-  BPRSL %>% 
+            mutate(week = as.integer(substr(weeks,5,5)))
+glimpse(BPRSL)
+dim(BPRSL)
+
+
+
+```
+
+Let's also visualize the data in the two different groups (/treatments).  
+
+```{r, message=FALSE}
+
+#plot the data
+ggplot(BPRSL, aes(x = week, y = bprs, linetype = subject)) +
+  geom_line() +
+  scale_linetype_manual(values = rep(1:10, times=4)) +
+  facet_grid(. ~ treatment, labeller = label_both) +
+  theme(legend.position = "none") + 
+  scale_y_continuous(limits = c(min(BPRSL$bprs), max(BPRSL$bprs)))
+```
+
+Next, let's run a random intercept model on the data. This takes into account the fact that the measurements are not independent. Let's create a regression model with "subject" as the random factor, and test the effect of treatment and week on the outcome variable bprs.  From the summary we can see that the response variable bprs changed significantly over time (weeks).   
+
+Let's also create a random intercept model where both treatment and subject are random factors, and compare these two models against the original model. From the ANOVA table we can see that the model with both treatment and subject as random factors has the best fit (p < 0.001).  
+
+```{r, message=FALSE}
+
+library(lme4)
+names(BPRSL)
+# let's create a regression model
+lm2 <- lm(bprs ~ week + treatment, data = BPRSL)
+summary(lm2)
+
+BPRS_lmer <- lmer(bprs ~ treatment + weeks + (1 | subject), data = BPRSL, REML = FALSE)
+BPRS_lmer1 <- lmer(bprs ~ treatment + weeks + (treatment | subject), data = BPRSL, REML = FALSE)
+anova(BPRS_lmer, BPRS_lmer1)
+
+
+
+```
+Next, let's try the random intercept and random slope model with interaction (of treatment * weeks) and compare this model with the one that did not include the interaction. From the ANOVA table we can see that the model with interaction effect of treatment * weeks is also a good fit (p < 0.05).  
+
+```{r, message=FALSE}
+
+BPRS_lmer2 <- lmer(bprs ~ treatment + weeks + (treatment | subject) + treatment * weeks, data = BPRSL, REML = FALSE)
+anova(BPRS_lmer1, BPRS_lmer2)
+
+```
+Finally, let's draw a plot with the actual values and fitted values of our last model.  
+
+From the plots we can see that the observed and fitted values are quite similar, indicating a good fit of our model.  
+
+```{r, message=FALSE}
+# draw the plot with the observed values of bprs
+plot1 <- ggplot(BPRSL, aes(x = week, y = bprs, group = treatment)) +
+  geom_boxplot(aes(linetype = treatment)) +
+facet_grid(. ~ treatment, labeller = label_both) +
+  scale_y_continuous(name="Observed bprs", limits=c(0, 100))
+
+# Create a vector of the fitted values of bprs and add it to BPRSL data table
+fitted_vector <- fitted(BPRS_lmer2)
+BPRSL$Fitted <- fitted_vector
+
+# draw the plot with the Fitted values of bprs
+plot2 <- ggplot(BPRSL, aes(x = week, y = Fitted, group = treatment)) +
+  geom_boxplot(aes(linetype = treatment)) +
+facet_grid(. ~ treatment, labeller = label_both) +
+  scale_y_continuous(name="Fitted bprs", limits=c(0, 100))
+
+library(gridExtra)
+
+grid.arrange(plot1, plot2)
+
+```
+
